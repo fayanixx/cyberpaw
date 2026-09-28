@@ -31,7 +31,7 @@
             </div>
           </div>
           <div class="brand-meta">
-            <span class="brand-badge">v1.2</span>
+            <span class="brand-badge">v1</span>
             <span class="brand-badge mode-badge">{{ cipherLabel }}</span>
           </div>
         </div>
@@ -151,7 +151,7 @@
               </button>
             </div>
             <div class="result-display">
-              {{ resultText || 'Result will appear here in real time...' }}
+              {{ resultText || 'Result will appear here...' }}
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@
             <div class="card-head">
               <span class="card-tag"><i class="fa-solid fa-paw"></i> Dynamic Character Mapping</span>
             </div>
-            <p class="tab-sub">Real-time inspection of the first 16 characters:</p>
+            <p class="tab-sub">Real-time inspection of characters:</p>
 
             <div v-if="transformations.length > 0" class="step-grid">
               <div v-for="(item, idx) in transformations" :key="idx" class="step-cell">
@@ -467,8 +467,8 @@ const resultText = computed(() => {
 // Transformations Mapping
 const transformations = computed(() => {
   if (!inputText.value) return [];
-  const textChars = inputText.value.slice(0, 16).split('');
-  const outputChars = (resultText.value || '').slice(0, 16).split('');
+  const textChars = inputText.value.split('');
+  const outputChars = (resultText.value || '').split('');
   const isEncrypt = mode.value === 'encrypt';
 
   const cleanKey = vigenereKey.value.toUpperCase().replace(/[^A-Z]/g, '') || 'A';
