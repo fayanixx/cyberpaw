@@ -1,199 +1,230 @@
 <template>
   <ion-page class="cyberpaw-page">
-    <!-- Header -->
-    <ion-header :translucent="false" class="ion-no-border">
-      <ion-toolbar class="paw-toolbar">
-        <ion-title>
-          <div class="paw-brand">
+    <!-- Safe Area Header -->
+    <header class="paw-safe-header">
+      <div class="paw-navbar">
+        <div class="paw-brand">
+          <div class="brand-avatar">
             <i class="fa-solid fa-cat brand-cat"></i>
-            <span class="brand-text">CYBERPAW</span>
-            <span class="brand-badge">v1.0</span>
           </div>
-        </ion-title>
-      </ion-toolbar>
+          <div class="brand-titles">
+            <span class="brand-text">CYBERPAW</span>
+            <span class="brand-subtitle">iOS Security Terminal</span>
+          </div>
+        </div>
+        <span class="brand-badge">v1.0</span>
+      </div>
 
-      <!-- Segment Selector -->
+      <!-- Segment Selector (Encrypt / Decrypt) -->
       <div class="mode-wrapper" v-if="activeTab === 'console'">
-        <div class="mode-capsule">
+        <div class="mode-segmented">
           <button 
             type="button" 
             :class="['mode-tab', mode === 'encrypt' ? 'active' : '']" 
             @click="mode = 'encrypt'"
           >
-            <i class="fa-solid fa-lock"></i> Encrypt
+            <i class="fa-solid fa-lock"></i>
+            <span>Encrypt</span>
           </button>
           <button 
             type="button" 
             :class="['mode-tab', mode === 'decrypt' ? 'active' : '']" 
             @click="mode = 'decrypt'"
           >
-            <i class="fa-solid fa-lock-open"></i> Decrypt
+            <i class="fa-solid fa-lock-open"></i>
+            <span>Decrypt</span>
           </button>
         </div>
       </div>
-    </ion-header>
+    </header>
 
-    <ion-content class="ion-padding paw-content">
-      <!-- TAB 1: CONSOLE -->
-      <div v-show="activeTab === 'console'" class="tab-pane">
-        <div class="paw-card">
-          <div class="card-head">
-            <span class="card-tag"><i class="fa-solid fa-sliders"></i> Parameters</span>
-          </div>
-
-          <div class="form-row">
-            <div class="field-item">
-              <label class="field-title">Cipher Type</label>
-              <select v-model="cipherType" class="field-select">
-                <option value="caesar">Caesar Shift</option>
-                <option value="vigenere">Vigenère Cipher</option>
-              </select>
+    <ion-content class="paw-content" :fullscreen="false">
+      <div class="content-container">
+        <!-- TAB 1: CONSOLE -->
+        <div v-show="activeTab === 'console'" class="tab-pane">
+          <!-- Parameters Card -->
+          <div class="paw-card">
+            <div class="card-head">
+              <span class="card-tag"><i class="fa-solid fa-sliders"></i> Parameters</span>
             </div>
 
-            <div class="field-item">
-              <label class="field-title">{{ cipherType === 'caesar' ? 'Numeric Shift' : 'Secret Keyword' }}</label>
-              <div v-if="cipherType === 'caesar'" class="stepper-box">
-                <button type="button" class="step-btn" @click="shiftKey = Math.max(1, shiftKey - 1)">-</button>
-                <input type="number" v-model.number="shiftKey" min="1" max="25" class="stepper-field" />
-                <button type="button" class="step-btn" @click="shiftKey = Math.min(25, shiftKey + 1)">+</button>
+            <div class="form-row">
+              <!-- Custom Styled Popover Trigger for Cipher Type -->
+              <div class="field-item">
+                <label class="field-title">Cipher Type</label>
+                <div class="custom-select-trigger" @click="showCipherPicker = !showCipherPicker">
+                  <span>{{ cipherType === 'caesar' ? 'Caesar Shift' : 'Vigenère Cipher' }}</span>
+                  <i class="fa-solid fa-chevron-down caret-icon"></i>
+                </div>
               </div>
-              <input 
-                v-else 
-                type="text" 
-                v-model="vigenereKey" 
-                placeholder="Keyword..." 
-                class="field-input uppercase"
-              />
+
+              <!-- Key Input -->
+              <div class="field-item">
+                <label class="field-title">{{ cipherType === 'caesar' ? 'Numeric Shift' : 'Secret Key' }}</label>
+                <div v-if="cipherType === 'caesar'" class="stepper-box">
+                  <button type="button" class="step-btn" @click="shiftKey = Math.max(1, shiftKey - 1)">−</button>
+                  <input type="number" v-model.number="shiftKey" min="1" max="25" class="stepper-field" />
+                  <button type="button" class="step-btn" @click="shiftKey = Math.min(25, shiftKey + 1)">+</button>
+                </div>
+                <input 
+                  v-else 
+                  type="text" 
+                  v-model="vigenereKey" 
+                  placeholder="Keyword..." 
+                  class="field-input uppercase"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Input Card -->
+          <div class="paw-card">
+            <div class="card-head">
+              <span class="card-tag">
+                <i class="fa-solid fa-keyboard"></i> {{ mode === 'encrypt' ? 'Plaintext' : 'Ciphertext' }}
+              </span>
+              <div class="pill-group">
+                <button type="button" class="pill-btn" @click="inputText = 'STEALTH CAT'">Stealth</button>
+                <button type="button" class="pill-btn" @click="inputText = ''">Clear</button>
+              </div>
+            </div>
+            <textarea 
+              v-model="inputText" 
+              class="field-textarea" 
+              rows="4" 
+              :placeholder="mode === 'encrypt' ? 'Type message to encrypt...' : 'Paste message to decrypt...'"
+            ></textarea>
+          </div>
+
+          <!-- Output Card -->
+          <div class="paw-card output-card">
+            <div class="card-head">
+              <span class="card-tag tag-white">
+                <i class="fa-solid fa-shield-cat"></i> Output
+              </span>
+              <button type="button" class="pill-btn copy-btn" @click="copyResult" :disabled="!resultText">
+                <i class="fa-regular fa-copy"></i> Copy
+              </button>
+            </div>
+            <div class="result-display">
+              {{ resultText || 'Result will appear here...' }}
             </div>
           </div>
         </div>
 
-        <!-- Input Field -->
-        <div class="paw-card">
-          <div class="card-head">
-            <span class="card-tag">
-              <i class="fa-solid fa-keyboard"></i> {{ mode === 'encrypt' ? 'Plaintext' : 'Ciphertext' }}
-            </span>
-            <div class="pill-group">
-              <button type="button" class="pill-btn" @click="inputText = 'STEALTH CAT'">Preset</button>
-              <button type="button" class="pill-btn" @click="inputText = ''">Clear</button>
+        <!-- TAB 2: INSPECTOR -->
+        <div v-show="activeTab === 'inspector'" class="tab-pane">
+          <div class="paw-card">
+            <div class="card-head">
+              <span class="card-tag"><i class="fa-solid fa-paw"></i> Letter Transformations</span>
+            </div>
+            <p class="tab-sub">Live cryptographic character mapping:</p>
+
+            <div v-if="transformations.length > 0" class="step-grid">
+              <div v-for="(item, idx) in transformations" :key="idx" class="step-cell">
+                <div class="char-original">{{ item.orig }}</div>
+                <i class="fa-solid fa-arrow-down-long step-icon"></i>
+                <div class="char-transformed">{{ item.transformed }}</div>
+                <span class="char-shift">{{ item.shiftLabel }}</span>
+              </div>
+            </div>
+            <div v-else class="empty-state">
+              <i class="fa-solid fa-cat empty-icon"></i>
+              <p>Type characters in Console to inspect transformations.</p>
             </div>
           </div>
-          <textarea 
-            v-model="inputText" 
-            class="field-textarea" 
-            rows="3" 
-            :placeholder="mode === 'encrypt' ? 'Type message to encrypt...' : 'Paste scrambled message...'"
-          ></textarea>
         </div>
 
-        <!-- Output Field -->
-        <div class="paw-card output-accent">
-          <div class="card-head">
-            <span class="card-tag tag-white">
-              <i class="fa-solid fa-shield-cat"></i> Output
-            </span>
-            <button type="button" class="pill-btn light" @click="copyResult" :disabled="!resultText">
-              <i class="fa-regular fa-copy"></i> Copy
-            </button>
-          </div>
-          <div class="result-display">
-            {{ resultText || 'Waiting for input...' }}
+        <!-- TAB 3: GUIDE -->
+        <div v-show="activeTab === 'guide'" class="tab-pane">
+          <div class="paw-card">
+            <div class="card-head">
+              <span class="card-tag"><i class="fa-solid fa-circle-info"></i> Cipher Mechanics</span>
+            </div>
+
+            <div class="info-block">
+              <div class="info-title"><i class="fa-solid fa-paw"></i> Caesar Shift</div>
+              <p class="info-desc">
+                Substitutes each alphabet letter with one shifted $k$ places ahead. Loops automatically back from Z to A.
+              </p>
+            </div>
+
+            <div class="info-block">
+              <div class="info-title"><i class="fa-solid fa-shield-cat"></i> Vigenère Cipher</div>
+              <p class="info-desc">
+                Polyalphabetic substitution that repeats a secret keyword across the plaintext, shifting each character by its corresponding key offset.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- TAB 2: INSPECTOR -->
-      <div v-show="activeTab === 'inspector'" class="tab-pane">
-        <div class="paw-card">
-          <div class="card-head">
-            <span class="card-tag"><i class="fa-solid fa-paw"></i> Letter Conversions</span>
-          </div>
-          <p class="tab-sub">Inspect how each letter was transformed:</p>
-
-          <div v-if="transformations.length > 0" class="step-grid">
-            <div v-for="(item, idx) in transformations" :key="idx" class="step-cell">
-              <div class="char-original">{{ item.orig }}</div>
-              <i class="fa-solid fa-arrow-down-long step-icon"></i>
-              <div class="char-transformed">{{ item.transformed }}</div>
-              <span class="char-shift">{{ item.shiftLabel }}</span>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <i class="fa-solid fa-cat empty-icon"></i>
-            <p>Type text in the Console to view live transformations.</p>
-          </div>
+      <!-- iOS Custom Action Sheet Modal for Cipher Picker -->
+      <div v-if="showCipherPicker" class="ios-backdrop" @click="showCipherPicker = false">
+        <div class="ios-sheet" @click.stop>
+          <div class="ios-sheet-header">Select Algorithm</div>
+          <button 
+            type="button" 
+            :class="['ios-sheet-btn', cipherType === 'caesar' ? 'selected' : '']" 
+            @click="cipherType = 'caesar'; showCipherPicker = false"
+          >
+            <span>Caesar Shift</span>
+            <i v-if="cipherType === 'caesar'" class="fa-solid fa-check"></i>
+          </button>
+          <button 
+            type="button" 
+            :class="['ios-sheet-btn', cipherType === 'vigenere' ? 'selected' : '']" 
+            @click="cipherType = 'vigenere'; showCipherPicker = false"
+          >
+            <span>Vigenère Cipher</span>
+            <i v-if="cipherType === 'vigenere'" class="fa-solid fa-check"></i>
+          </button>
+          <button type="button" class="ios-sheet-btn cancel" @click="showCipherPicker = false">Cancel</button>
         </div>
       </div>
 
-      <!-- TAB 3: GUIDE -->
-      <div v-show="activeTab === 'guide'" class="tab-pane">
-        <div class="paw-card">
-          <div class="card-head">
-            <span class="card-tag"><i class="fa-solid fa-circle-info"></i> How It Works</span>
-          </div>
-
-          <div class="info-block">
-            <div class="info-title"><i class="fa-solid fa-paw"></i> Caesar Shift</div>
-            <p class="info-desc">
-              Shifts each letter down the alphabet by a chosen numerical key value. Wraps around automatically from Z to A.
-            </p>
-          </div>
-
-          <div class="info-block">
-            <div class="info-title"><i class="fa-solid fa-shield-cat"></i> Vigenère Cipher</div>
-            <p class="info-desc">
-              Uses an alphabetic keyword to apply dynamic, alternating Caesar shifts for each consecutive character.
-            </p>
-          </div>
-        </div>
+      <!-- Custom Themed Copy Toast Modal -->
+      <div v-if="showToast" class="paw-toast-modal">
+        <i class="fa-solid fa-paw toast-paw"></i>
+        <span>Copied to Clipboard!</span>
       </div>
     </ion-content>
 
-    <!-- Footer Navigation -->
-    <ion-footer class="ion-no-border">
-      <div class="paw-nav-bar">
-        <button 
-          type="button" 
-          :class="['nav-item', activeTab === 'console' ? 'active' : '']" 
-          @click="activeTab = 'console'"
-        >
-          <i class="fa-solid fa-terminal"></i>
-          <span>Console</span>
-        </button>
+    <!-- Bottom Tab Navigation Bar -->
+    <footer class="paw-footer-bar">
+      <button 
+        type="button" 
+        :class="['nav-item', activeTab === 'console' ? 'active' : '']" 
+        @click="activeTab = 'console'"
+      >
+        <i class="fa-solid fa-terminal"></i>
+        <span>Console</span>
+      </button>
 
-        <button 
-          type="button" 
-          :class="['nav-item', activeTab === 'inspector' ? 'active' : '']" 
-          @click="activeTab = 'inspector'"
-        >
-          <i class="fa-solid fa-paw"></i>
-          <span>Inspector</span>
-        </button>
+      <button 
+        type="button" 
+        :class="['nav-item', activeTab === 'inspector' ? 'active' : '']" 
+        @click="activeTab = 'inspector'"
+      >
+        <i class="fa-solid fa-paw"></i>
+        <span>Inspector</span>
+      </button>
 
-        <button 
-          type="button" 
-          :class="['nav-item', activeTab === 'guide' ? 'active' : '']" 
-          @click="activeTab = 'guide'"
-        >
-          <i class="fa-solid fa-book-open"></i>
-          <span>Guide</span>
-        </button>
-      </div>
-    </ion-footer>
+      <button 
+        type="button" 
+        :class="['nav-item', activeTab === 'guide' ? 'active' : '']" 
+        @click="activeTab = 'guide'"
+      >
+        <i class="fa-solid fa-book-open"></i>
+        <span>Guide</span>
+      </button>
+    </footer>
   </ion-page>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { 
-  IonPage, 
-  IonHeader, 
-  IonToolbar, 
-  IonTitle, 
-  IonContent, 
-  IonFooter 
-} from '@ionic/vue';
+import { IonPage, IonContent } from '@ionic/vue';
 
 const activeTab = ref('console');
 const mode = ref('encrypt');
@@ -201,6 +232,8 @@ const cipherType = ref('caesar');
 const shiftKey = ref(3);
 const vigenereKey = ref('PAW');
 const inputText = ref('');
+const showCipherPicker = ref(false);
+const showToast = ref(false);
 
 const runCaesar = (str, shift, encrypt = true) => {
   const normShift = ((shift % 26) + 26) % 26;
@@ -263,11 +296,11 @@ const transformations = computed(() => {
 
     if (isLetter) {
       if (cipherType.value === 'caesar') {
-        label = `${isEncrypt ? '+' : '-'}${shiftKey.value}`;
+        label = `${isEncrypt ? '+' : '−'}${shiftKey.value}`;
       } else {
         const keyChar = cleanKey[vIndex % cleanKey.length];
         const s = keyChar.charCodeAt(0) - 65;
-        label = `${keyChar} (${isEncrypt ? '+' : '-'}${s})`;
+        label = `${keyChar} (${isEncrypt ? '+' : '−'}${s})`;
         vIndex++;
       }
     }
@@ -283,7 +316,10 @@ const transformations = computed(() => {
 const copyResult = async () => {
   if (resultText.value) {
     await navigator.clipboard.writeText(resultText.value);
-    alert('Copied to clipboard!');
+    showToast.value = true;
+    setTimeout(() => {
+      showToast.value = false;
+    }, 2200);
   }
 };
 </script>
@@ -293,107 +329,158 @@ const copyResult = async () => {
   --background: #000000;
   background: #000000;
   color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.paw-toolbar {
-  --background: #050505;
-  --border-width: 0 0 1px 0;
-  --border-color: #222222;
-  padding: 6px 4px;
+/* Safe Area Inset to stop top clipping */
+.paw-safe-header {
+  padding-top: max(env(safe-area-inset-top, 0px), 38px);
+  background: #0a0a0a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.paw-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px 8px;
 }
 
 .paw-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.brand-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-cat {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   color: #ffffff;
+}
+
+.brand-titles {
+  display: flex;
+  flex-direction: column;
 }
 
 .brand-text {
   font-family: monospace;
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 800;
+  font-size: 1.15rem;
   letter-spacing: 2px;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 0.72rem;
+  color: #71717a;
+  letter-spacing: 0.5px;
 }
 
 .brand-badge {
-  font-size: 0.65rem;
-  background: #1a1a1a;
-  color: #888888;
-  border: 1px solid #333333;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 0.7rem;
+  background: #18181b;
+  color: #a1a1aa;
+  border: 1px solid #27272a;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
 }
 
+/* iOS Style Segmented Control */
 .mode-wrapper {
-  background: #050505;
-  padding: 8px 16px 12px;
-  border-bottom: 1px solid #1a1a1a;
+  padding: 8px 16px 14px;
 }
 
-.mode-capsule {
+.mode-segmented {
   display: flex;
-  background: #111111;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
+  background: #18181b;
+  border-radius: 12px;
   padding: 3px;
+  border: 1px solid #27272a;
 }
 
 .mode-tab {
   flex: 1;
-  padding: 8px;
+  height: 38px;
   background: transparent;
-  color: #777777;
+  color: #a1a1aa;
   border: none;
-  font-size: 0.8rem;
-  font-weight: 700;
-  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
 }
 
 .mode-tab.active {
   background: #ffffff;
   color: #000000;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* Content Area */
 .paw-content {
   --background: #000000;
+  flex: 1;
 }
 
+.content-container {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Cards (iOS Apple-like Cards) */
 .paw-card {
-  background: #0b0b0b;
-  border: 1px solid #1c1c1c;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 14px;
+  background: #111113;
+  border: 1px solid #222225;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.output-card {
+  border-color: #2e2e34;
+  background: #141416;
 }
 
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .card-tag {
   font-family: monospace;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   text-transform: uppercase;
-  color: #888888;
+  color: #a1a1aa;
   letter-spacing: 1px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-weight: 600;
 }
 
 .tag-white {
@@ -403,26 +490,48 @@ const copyResult = async () => {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .field-title {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  color: #666666;
-  margin-bottom: 6px;
-  font-family: monospace;
+  color: #71717a;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
-.field-select, .field-input, .field-textarea {
-  width: 100%;
-  background: #141414;
-  border: 1px solid #2a2a2a;
+/* Custom Select Dropdown Trigger */
+.custom-select-trigger {
+  height: 46px;
+  background: #1a1a1d;
+  border: 1px solid #2c2c31;
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.92rem;
   color: #ffffff;
-  border-radius: 8px;
-  padding: 9px;
-  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.caret-icon {
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.field-input {
+  width: 100%;
+  height: 46px;
+  background: #1a1a1d;
+  border: 1px solid #2c2c31;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 0.92rem;
+  color: #ffffff;
   outline: none;
   box-sizing: border-box;
 }
@@ -433,168 +542,277 @@ const copyResult = async () => {
 
 .stepper-box {
   display: flex;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
+  height: 46px;
+  background: #1a1a1d;
+  border: 1px solid #2c2c31;
+  border-radius: 12px;
   overflow: hidden;
 }
 
 .step-btn {
+  width: 44px;
   background: transparent;
   color: #ffffff;
   border: none;
-  padding: 8px 12px;
+  font-size: 1.25rem;
   cursor: pointer;
-  font-weight: 700;
 }
 
 .stepper-field {
-  width: 100%;
-  text-align: center;
+  flex: 1;
   background: transparent;
   border: none;
   color: #ffffff;
+  text-align: center;
+  font-size: 1.05rem;
   font-family: monospace;
+  font-weight: 700;
+  outline: none;
 }
 
 .pill-group {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pill-btn {
-  background: #1a1a1a;
-  border: 1px solid #333333;
-  color: #aaaaaa;
-  font-size: 0.65rem;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background: #1e1e24;
+  border: 1px solid #2e2e38;
+  color: #d4d4d8;
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
 }
 
-.pill-btn.light {
+.copy-btn {
   background: #ffffff;
   color: #000000;
   border: none;
-  font-weight: 700;
+  padding: 6px 14px;
 }
 
 .field-textarea {
+  width: 100%;
+  background: #1a1a1d;
+  border: 1px solid #2c2c31;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #ffffff;
+  outline: none;
   resize: none;
+  box-sizing: border-box;
 }
 
 .result-display {
   font-family: monospace;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: #ffffff;
+  line-height: 1.5;
   word-break: break-all;
-  min-height: 48px;
-  background: #050505;
-  border: 1px dashed #2a2a2a;
-  padding: 12px;
-  border-radius: 8px;
+  min-height: 64px;
+  background: #09090b;
+  border: 1px dashed #2f2f35;
+  padding: 14px;
+  border-radius: 12px;
 }
 
+/* Inspector Grid */
 .tab-sub {
-  font-size: 0.8rem;
-  color: #777777;
-  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: #a1a1aa;
+  margin-bottom: 14px;
 }
 
 .step-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .step-cell {
-  background: #121212;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  padding: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 10px 6px;
   text-align: center;
 }
 
 .char-original {
   font-family: monospace;
   font-weight: 700;
-  color: #777777;
+  font-size: 1rem;
+  color: #71717a;
 }
 
 .step-icon {
-  font-size: 0.65rem;
-  color: #444444;
-  margin: 4px 0;
+  font-size: 0.75rem;
+  color: #52525b;
+  margin: 6px 0;
 }
 
 .char-transformed {
   font-family: monospace;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1.1rem;
   color: #ffffff;
 }
 
 .char-shift {
   display: block;
-  font-size: 0.6rem;
-  color: #888888;
-  margin-top: 4px;
+  font-size: 0.65rem;
+  color: #a1a1aa;
+  margin-top: 6px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 24px;
-  color: #666666;
+  padding: 36px 16px;
+  color: #71717a;
 }
 
 .empty-icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  color: #333333;
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+  color: #27272a;
 }
 
+/* Guide Styles */
 .info-block {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #1a1a1a;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #222225;
 }
 
 .info-title {
   font-weight: 700;
-  font-size: 0.88rem;
-  margin-bottom: 4px;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .info-desc {
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: #999999;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #a1a1aa;
 }
 
-.paw-nav-bar {
+/* iOS Bottom Action Sheet for Picker */
+.ios-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999;
   display: flex;
-  background: #050505;
-  border-top: 1px solid #1a1a1a;
-  padding: 6px 12px 14px;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+.ios-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: #1c1c1e;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #2c2c2e;
+}
+
+.ios-sheet-header {
+  padding: 14px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #8e8e93;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-bottom: 1px solid #2c2c2e;
+}
+
+.ios-sheet-btn {
+  width: 100%;
+  height: 52px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2c2c2e;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.ios-sheet-btn.selected {
+  color: #38bdf8;
+}
+
+.ios-sheet-btn.cancel {
+  border-bottom: none;
+  color: #ef4444;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Themed Toast Modal */
+.paw-toast-modal {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  color: #000000;
+  padding: 10px 20px;
+  border-radius: 30px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  z-index: 1000;
+}
+
+.toast-paw {
+  font-size: 1rem;
+}
+
+/* iOS Footer Navigation */
+.paw-footer-bar {
+  display: flex;
+  background: #0a0a0a;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px max(env(safe-area-inset-bottom, 0px), 16px);
+  flex-shrink: 0;
 }
 
 .nav-item {
   flex: 1;
+  height: 48px;
   background: transparent;
   border: none;
-  color: #555555;
+  color: #71717a;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .nav-item i {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
 }
 
 .nav-item.active {
